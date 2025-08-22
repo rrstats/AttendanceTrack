@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Attendance Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(30, 58, 138, 0.1);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .upload-section h2 {
+            font-size: 1.8rem;
+            color: #1e293b;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        }
+
+        .file-upload:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(37, 99, 235, 0.4);
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .upload-icon {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+
+        .date-selection {
+            margin: 40px 0;
+            display: none;
+        }
+
+        .date-selection h3 {
+            font-size: 1.5rem;
+            color: #374151;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .date-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .date-btn {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border: 2px solid #d1d5db;
+            color: #374151;
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .date-btn:hover {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .date-btn.selected {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-color: #1d4ed8;
+            color: white;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .load-more-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0 5px;
+        }
+
+        .load-more-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .load-more-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 40px;
+            display: none;
+        }
+
+        .results h3 {
+            font-size: 1.5rem;
+            color: #374151;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .date-result {
+            margin-bottom: 30px;
+            background: #f9fafb;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .date-result h4 {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .attendance-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .attendance-table th {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #d1d5db;
+        }
+
+        .attendance-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #4b5563;
+        }
+
+        .attendance-table tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .attendance-table tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        .attendance-table tr:nth-child(even):hover {
+            background-color: #f3f4f6;
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status.error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .status.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .date-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .date-btn {
+                min-width: 250px;
+            }
+
+            .attendance-table {
+                font-size: 0.9rem;
+            }
+
+            .attendance-table th,
+            .attendance-table td {
+                padding: 10px 8px;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Session Attendance Analyzer</h1>
+            <p>Upload and analyze your session attendance data with ease</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-section">
+                <h2>Please Upload Master Session Attendance</h2>
+                <label for="csvFile" class="file-upload">
+                    <span class="upload-icon">📁</span>
+                    Choose CSV File
+                    <input type="file" id="csvFile" accept=".csv" />
+                </label>
+            </div>
+
+            <div id="status"></div>
+
+            <div class="date-selection" id="dateSelection">
+                <h3>Select Dates for Attendance Analysis</h3>
+                <div class="date-buttons" id="dateButtons"></div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="load-more-btn" id="loadMore4" onclick="loadMoreDates(4)">Load 4 More</button>
+                    <button class="load-more-btn" id="loadMore8" onclick="loadMoreDates(8)" style="display: none;">Load 4 More</button>
+                </div>
+            </div>
+
+            <div class="results" id="results">
+                <h3>Attendance Results (Students marked 'A')</h3>
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let csvData = [];
+        let headers = [];
+        let dateColumns = [];
+        let currentDateOffset = 0;
+        let maxDatesPerLoad = 4;
+
+        document.getElementById('csvFile').addEventListener('change', handleFile);
+
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showStatus('Processing CSV file...', 'info');
+
+            Papa.parse(file, {
+                complete: function(results) {
+                    try {
+                        processCSVData(results.data);
+                        showStatus('CSV file loaded successfully!', 'success');
+                    } catch (error) {
+                        showStatus('Error processing CSV: ' + error.message, 'error');
+                        console.error('CSV Processing Error:', error);
+                    }
+                },
+                header: false,
+                skipEmptyLines: true,
+                dynamicTyping: false,
+                error: function(error) {
+                    showStatus('Error reading CSV file: ' + error.message, 'error');
+                }
+            });
+        }
+
+        function processCSVData(data) {
+            if (data.length < 7) {
+                throw new Error('CSV file must have at least 7 rows');
+            }
+
+            // Process headers - concatenate rows 3-6 (indices 2-5) and use as headers
+            const headerRows = data.slice(2, 6);
+            const processedHeaders = [];
+
+            // Get the maximum number of columns
+            const maxCols = Math.max(...headerRows.map(row => row.length));
+
+            for (let col = 0; col < maxCols; col++) {
+                let concatenatedHeader = '';
+                for (let row = 0; row < headerRows.length; row++) {
+                    if (headerRows[row][col]) {
+                        concatenatedHeader += (concatenatedHeader ? ' ' : '') + headerRows[row][col].toString().trim();
+                    }
+                }
+                processedHeaders.push(concatenatedHeader);
+            }
+
+            headers = processedHeaders;
+
+            // Data starts from row 7 (index 6)
+            csvData = data.slice(6).filter(row => row.some(cell => cell && cell.toString().trim()));
+
+            // Find date columns (those that contain dates and are not the standard columns)
+            const standardColumns = ['S No.', 'Name', 'User ID', 'Overall Attendance %', 'Mandatory Session Attendance %', 'Learner Attendance URL'];
+            dateColumns = [];
+
+            headers.forEach((header, index) => {
+                const headerLower = header.toLowerCase();
+                const isStandardColumn = standardColumns.some(col => 
+                    headerLower.includes(col.toLowerCase()) || 
+                    col.toLowerCase().includes(headerLower)
+                );
+
+                if (!isStandardColumn && header.trim() && (
+                    headerLower.includes('topic') || 
+                    /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}/.test(header) ||
+                    /\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}/.test(header) ||
+                    /(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(header)
+                )) {
+                    dateColumns.push({ index, header });
+                }
+            });
+
+            if (dateColumns.length === 0) {
+                throw new Error('No date columns found in the CSV');
+            }
+
+            currentDateOffset = 0;
+            displayDateButtons();
+            document.getElementById('dateSelection').style.display = 'block';
+        }
+
+        function displayDateButtons() {
+            const dateButtonsContainer = document.getElementById('dateButtons');
+            const startIndex = currentDateOffset;
+            const endIndex = Math.min(startIndex + maxDatesPerLoad, dateColumns.length);
+
+            // Clear existing buttons if this is the first load
+            if (currentDateOffset === 0) {
+                dateButtonsContainer.innerHTML = '';
+            }
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const dateColumn = dateColumns[i];
+                const button = document.createElement('button');
+                button.className = 'date-btn';
+                button.dataset.columnIndex = dateColumn.index;
+                
+                // Clean up the header text - remove everything before "Topic"
+                let displayText = dateColumn.header;
+                const topicIndex = displayText.toLowerCase().indexOf('topic');
+                if (topicIndex !== -1) {
+                    displayText = displayText.substring(topicIndex);
+                }
+                
+                button.textContent = displayText;
+                button.onclick = () => toggleDateSelection(button, dateColumn.index);
+                dateButtonsContainer.appendChild(button);
+            }
+
+            // Update load more buttons visibility
+            const loadMore4Btn = document.getElementById('loadMore4');
+            const loadMore8Btn = document.getElementById('loadMore8');
+            
+            if (endIndex >= dateColumns.length) {
+                loadMore4Btn.style.display = 'none';
+                loadMore8Btn.style.display = 'none';
+            } else if (currentDateOffset === 0) {
+                loadMore4Btn.style.display = 'inline-block';
+                loadMore8Btn.style.display = 'none';
+            } else if (currentDateOffset === 4) {
+                loadMore4Btn.style.display = 'none';
+                loadMore8Btn.style.display = 'inline-block';
+            }
+        }
+
+        function loadMoreDates(newOffset) {
+            currentDateOffset = newOffset;
+            displayDateButtons();
+        }
+
+        function toggleDateSelection(button, columnIndex) {
+            button.classList.toggle('selected');
+            updateResults();
+        }
+
+        function updateResults() {
+            const selectedButtons = document.querySelectorAll('.date-btn.selected');
+            const selectedColumns = Array.from(selectedButtons).map(btn => parseInt(btn.dataset.columnIndex));
+
+            if (selectedColumns.length === 0) {
+                document.getElementById('results').style.display = 'none';
+                return;
+            }
+
+            const resultsContent = document.getElementById('resultsContent');
+            resultsContent.innerHTML = '';
+
+            // Find indices for Name, User ID, and Mandatory Session columns
+            const nameIndex = headers.findIndex(h => h.toLowerCase().includes('name'));
+            const userIdIndex = headers.findIndex(h => h.toLowerCase().includes('user id'));
+            const mandatoryIndex = headers.findIndex(h => h.toLowerCase().includes('mandatory session'));
+
+            selectedColumns.forEach(columnIndex => {
+                const columnHeader = headers[columnIndex];
+                
+                // Clean up header for display
+                let displayHeader = columnHeader;
+                const topicIndex = displayHeader.toLowerCase().indexOf('topic');
+                if (topicIndex !== -1) {
+                    displayHeader = displayHeader.substring(topicIndex);
+                }
+
+                // Filter rows where the selected column has value 'A'
+                const attendanceData = csvData.filter(row => 
+                    row[columnIndex] && row[columnIndex].toString().trim().toLowerCase() === 'a'
+                );
+
+                if (attendanceData.length > 0) {
+                    const dateResultDiv = document.createElement('div');
+                    dateResultDiv.className = 'date-result';
+
+                    const headerElement = document.createElement('h4');
+                    headerElement.textContent = `${displayHeader} (${attendanceData.length} students present)`;
+                    dateResultDiv.appendChild(headerElement);
+
+                    const table = document.createElement('table');
+                    table.className = 'attendance-table';
+
+                    // Create table header
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    
+                    const headers_to_show = ['Name', 'User ID', 'Mandatory Session'];
+                    headers_to_show.forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText;
+                        headerRow.appendChild(th);
+                    });
+                    
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    // Create table body
+                    const tbody = document.createElement('tbody');
+                    
+                    attendanceData.forEach(row => {
+                        const tr = document.createElement('tr');
+                        
+                        // Name
+                        const nameTd = document.createElement('td');
+                        nameTd.textContent = (nameIndex !== -1 && row[nameIndex]) ? row[nameIndex] : 'N/A';
+                        tr.appendChild(nameTd);
+                        
+                        // User ID
+                        const userIdTd = document.createElement('td');
+                        userIdTd.textContent = (userIdIndex !== -1 && row[userIdIndex]) ? row[userIdIndex] : 'N/A';
+                        tr.appendChild(userIdTd);
+                        
+                        // Mandatory Session
+                        const mandatoryTd = document.createElement('td');
+                        mandatoryTd.textContent = (mandatoryIndex !== -1 && row[mandatoryIndex]) ? row[mandatoryIndex] : 'N/A';
+                        tr.appendChild(mandatoryTd);
+                        
+                        tbody.appendChild(tr);
+                    });
+                    
+                    table.appendChild(tbody);
+                    dateResultDiv.appendChild(table);
+                    resultsContent.appendChild(dateResultDiv);
+                } else {
+                    const dateResultDiv = document.createElement('div');
+                    dateResultDiv.className = 'date-result';
+
+                    const headerElement = document.createElement('h4');
+                    headerElement.textContent = `${displayHeader}`;
+                    dateResultDiv.appendChild(headerElement);
+
+                    const noDataMsg = document.createElement('div');
+                    noDataMsg.className = 'status info';
+                    noDataMsg.textContent = 'No students marked as present (A) for this session.';
+                    dateResultDiv.appendChild(noDataMsg);
+
+                    resultsContent.appendChild(dateResultDiv);
+                }
+            });
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
