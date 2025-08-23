@@ -514,7 +514,7 @@
                     dateResultDiv.className = 'date-result';
 
                     const headerElement = document.createElement('h4');
-                    headerElement.textContent = `${displayHeader} (${attendanceData.length} students present)`;
+                    headerElement.textContent = `${displayHeader} (${attendanceData.length} learners absent)`;
                     dateResultDiv.appendChild(headerElement);
 
                     const table = document.createElement('table');
@@ -571,7 +571,7 @@
 
                     const noDataMsg = document.createElement('div');
                     noDataMsg.className = 'status info';
-                    noDataMsg.textContent = 'No students marked as present (A) for this session.';
+                    noDataMsg.textContent = 'No students marked as absent (A) for this session.';
                     dateResultDiv.appendChild(noDataMsg);
 
                     resultsContent.appendChild(dateResultDiv);
